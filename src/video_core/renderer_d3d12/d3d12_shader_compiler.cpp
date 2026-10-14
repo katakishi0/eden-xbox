@@ -21,8 +21,21 @@ namespace D3D12 {
 
 namespace {
 
-/// Shader model the translator may use: the Xbox Series UWP runtime reports 6.4.
-constexpr dxil_shader_model SHADER_MODEL = SHADER_MODEL_6_4;
+/// The bundled translator supports Shader Model 6.x through 6.4. Clamp newer devices to 6.4,
+/// while allowing older devices to use the highest model they actually report.
+constexpr std::optional<dxil_shader_model> DxilShaderModelFor(D3D_SHADER_MODEL model) {
+    const u32 encoded = static_cast<u32>(model);
+    const u32 major = encoded >> 4;
+    const u32 minor = encoded & 0xF;
+    if (major != 6) {
+        return std::nullopt;
+    }
+    return static_cast<dxil_shader_model>(0x60000u + (minor > 4 ? 4 : minor));
+}
+static_assert(DxilShaderModelFor(D3D_SHADER_MODEL_5_1).has_value() == false);
+static_assert(DxilShaderModelFor(D3D_SHADER_MODEL_6_0).value() == SHADER_MODEL_6_0);
+static_assert(DxilShaderModelFor(D3D_SHADER_MODEL_6_4).value() == SHADER_MODEL_6_4);
+
 /// Validator rules the translator targets; dxil.dll only has to be at least this new.
 constexpr dxil_validator_version VALIDATOR_VERSION = DXIL_VALIDATOR_1_4;
 
@@ -70,7 +83,16 @@ void LogTranslatorMessage(void*, const char* msg) {
 
 } // Anonymous namespace
 
-ShaderCompiler::ShaderCompiler() {
+ShaderCompiler::ShaderCompiler(D3D_SHADER_MODEL device_shader_model)
+    : shader_model{DxilShaderModelFor(device_shader_model)} {
+    if (!shader_model) {
+        const u32 encoded = static_cast<u32>(device_shader_model);
+        LOG_ERROR(Render,
+                  "D3D12: shader model {}.{} is below the DXIL backend minimum (6.0); "
+                  "the accelerated shader path is unavailable",
+                  encoded >> 4, encoded & 0xF);
+        return;
+    }
     if (!spirv_to_dxil_library.Open("spirv_to_dxil.dll")) {
         LOG_ERROR(Render, "D3D12: spirv_to_dxil.dll could not be loaded (error {})",
                   GetLastError());
@@ -235,7 +257,7 @@ dxil_spirv_runtime_conf ShaderCompiler::MakeConf() const {
     conf.first_vertex_and_base_instance_mode = DXIL_SPIRV_SYSVAL_TYPE_ZERO;
     conf.workgroup_id_mode = DXIL_SPIRV_SYSVAL_TYPE_NATIVE;
     conf.declared_read_only_images_as_srvs = true;
-    conf.shader_model_max = SHADER_MODEL;
+    conf.shader_model_max = *shader_model;
     return conf;
 }
 

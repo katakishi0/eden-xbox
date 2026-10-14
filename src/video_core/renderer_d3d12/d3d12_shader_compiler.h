@@ -4,6 +4,7 @@
 #pragma once
 
 #include <mutex>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -28,7 +29,7 @@ constexpr u32 RUNTIME_DATA_SPACE = 31;
 /// loses the shader path (IsAvailable() == false) instead of failing to activate the app.
 class ShaderCompiler {
 public:
-    ShaderCompiler();
+    explicit ShaderCompiler(D3D_SHADER_MODEL device_shader_model);
     ~ShaderCompiler();
 
     ShaderCompiler(const ShaderCompiler&) = delete;
@@ -96,6 +97,7 @@ private:
     mutable std::mutex validator_mutex;
     bool lowers_integer_sampling{};
     bool available{};
+    std::optional<dxil_shader_model> shader_model;
 };
 
 } // namespace D3D12

@@ -657,23 +657,24 @@ void Device::WaitIdle() {
     Wait(Signal());
 }
 
-void Device::LogCapabilities() const {
+void Device::LogCapabilities() {
     ID3D12Device* const dev = device.Get();
     LOG_INFO(Render, "D3D12: adapter '{}'", adapter_name);
 
     // Highest shader model: the query fails with E_INVALIDARG for models the runtime does not know,
     // so walk down from the newest this SDK names.
-    D3D12_FEATURE_DATA_SHADER_MODEL shader_model{};
+    D3D12_FEATURE_DATA_SHADER_MODEL shader_model_info{};
     for (int sm = D3D_HIGHEST_SHADER_MODEL; sm >= D3D_SHADER_MODEL_5_1; --sm) {
-        shader_model.HighestShaderModel = static_cast<D3D_SHADER_MODEL>(sm);
-        if (Query(dev, D3D12_FEATURE_SHADER_MODEL, shader_model)) {
+        shader_model_info.HighestShaderModel = static_cast<D3D_SHADER_MODEL>(sm);
+        if (Query(dev, D3D12_FEATURE_SHADER_MODEL, shader_model_info)) {
             break;
         }
-        shader_model.HighestShaderModel = static_cast<D3D_SHADER_MODEL>(0);
+        shader_model_info.HighestShaderModel = static_cast<D3D_SHADER_MODEL>(0);
     }
+    shader_model = shader_model_info.HighestShaderModel;
     LOG_INFO(Render, "D3D12: highest shader model {}.{}",
-             static_cast<int>(shader_model.HighestShaderModel) >> 4,
-             static_cast<int>(shader_model.HighestShaderModel) & 0xF);
+             static_cast<int>(shader_model_info.HighestShaderModel) >> 4,
+             static_cast<int>(shader_model_info.HighestShaderModel) & 0xF);
 
     D3D12_FEATURE_DATA_ROOT_SIGNATURE root_signature{D3D_ROOT_SIGNATURE_VERSION_1_2};
     while (!Query(dev, D3D12_FEATURE_ROOT_SIGNATURE, root_signature) &&

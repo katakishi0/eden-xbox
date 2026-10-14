@@ -24,6 +24,9 @@ SPDX-License-Identifier: GPL-3.0-or-later
 > **Work in progress.** This is a development fork, not a release. Some games reach gameplay on the
 > console, none is free of bugs, and there are no published packages: you build and sign the app
 > yourself. Bring your own keys, firmware and game dumps; this repository contains none of them.
+>
+> **Xbox One Fat:** an experimental compatibility branch is under investigation; this is not a
+> supported target. See [the Xbox One Fat prototype notes](docs/xbox-one-fat.md).
 
 **Contents:** [Progress](#progress) ([games](#games), [screenshots](#on-the-console),
 [the memory wall](#the-memory-wall)) · [Architecture](#architecture) ·

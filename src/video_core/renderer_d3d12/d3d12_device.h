@@ -59,9 +59,9 @@ void CheckRemovedAfterDescriptor(ID3D12Device* device, Describe&& describe) {
 
 /// The D3D12 device, its direct queue and a fence to track queue progress.
 ///
-/// Xbox Series UWP (Dev Mode) exposes feature level 11.0 and shader model <= 6.4 with no Agility SDK,
-/// and no public document lists the rest of its caps, so the constructor logs everything the
-/// renderer will later depend on (LogCapabilities). That report is the ground truth for the backend.
+/// The backend was first validated on Xbox Series UWP (Dev Mode). Query runtime capabilities rather
+/// than assuming that every Xbox generation exposes the same shader model; LogCapabilities records
+/// the results used by the renderer.
 /// Enables GPU-based validation along with the debug layer (renderer_debug) for devices created
 /// from now on. PC only.
 void SetGpuBasedValidation(bool enabled);
@@ -125,6 +125,10 @@ public:
     const std::string& AdapterName() const {
         return adapter_name;
     }
+    /// Highest shader model accepted by the active D3D12 device, determined at initialization.
+    [[nodiscard]] D3D_SHADER_MODEL ShaderModel() const {
+        return shader_model;
+    }
 
     /// Local (device) memory budget and usage; zeroes if the adapter cannot report them.
     [[nodiscard]] DXGI_QUERY_VIDEO_MEMORY_INFO QueryVideoMemory() const;
@@ -159,7 +163,7 @@ public:
     void ReportDeviceRemoved();
 
 private:
-    void LogCapabilities() const;
+    void LogCapabilities();
 
     ComPtr<IDXGIFactory4> factory;
     ComPtr<IDXGIAdapter1> adapter;
@@ -175,6 +179,7 @@ private:
     HANDLE fence_event{};
     u64 next_fence_value{1};
     std::string adapter_name;
+    D3D_SHADER_MODEL shader_model{D3D_SHADER_MODEL_5_1};
     u64 initial_budget{}; ///< local video memory budget when the device was created
 };
 
